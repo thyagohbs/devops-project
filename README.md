@@ -1,1 +1,0 @@
-# Projeto DevOps de Exemplo
