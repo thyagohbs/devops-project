@@ -31,3 +31,29 @@ jobs:
         run: echo "O segredo é ${{ secrets.MINHA_VARIAVEL_SECRETA }}"
         env:
           MINHA_VARIAVEL_SECRETA: ${{ secrets.MINHA_VARIAVEL_SECRETA }}
+
+  deploy:
+    runs-on: ubuntu-latest
+    needs: build-and-test
+    steps:
+      - name: Checkout do código
+        uses: actions/checkout@v4
+
+      - name: Instalar kubectl e Minikube
+        run: |
+          curl -LO https://storage.googleapis.com/minikube/releases/latest/minikube-linux-amd64
+          sudo install minikube-linux-amd64 /usr/local/bin/minikube
+          sudo apt-get update && sudo apt-get install -y conntrack
+          minikube start --driver=docker
+
+      - name: Build e push da imagem Docker
+        run: |
+          eval $(minikube docker-env)
+          docker build -t minha-pagina-nginx -f docker/Dockerfile .
+
+      - name: Aplicar manifests Kubernetes
+        run: |
+          kubectl apply -f infra/kubernetes/secret.yaml
+          kubectl apply -f infra/kubernetes/volume.yaml
+          kubectl apply -f infra/kubernetes/deployment.yaml
+          kubectl apply -f infra/kubernetes/service.yaml
